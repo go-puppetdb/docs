@@ -24,6 +24,8 @@ architectures from a single test suite, without special privileges.
 
 ## An engine, not a framework
 
-go-puppetdb exposes a small, stable Go API and does one thing well —
-pql reference — as a dependency-light library you embed, not a
-service or CLI you must stand up.
+go-puppetdb exposes a small, stable Go API for PuppetDB's query language and
+wire formats, as a dependency-light library you embed. It can also stand up a
+PuppetDB-compatible `/pdb/query/v4` + `/pdb/cmd/v1` HTTP server backed by its
+embedded store — but that server is a handful of lines of the same library, not
+a separate service or framework you must adopt.
