@@ -391,9 +391,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#storage-server-aggregates-planned" class="md-nav__link">
+  <a href="#http-server-command-ingestion-embedded-storage" class="md-nav__link">
     <span class="md-ellipsis">
-      Storage server &amp; aggregates ( planned )
+      HTTP server, command ingestion &amp; embedded storage
     </span>
   </a>
   
@@ -530,9 +530,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#storage-server-aggregates-planned" class="md-nav__link">
+  <a href="#http-server-command-ingestion-embedded-storage" class="md-nav__link">
     <span class="md-ellipsis">
-      Storage server &amp; aggregates ( planned )
+      HTTP server, command ingestion &amp; embedded storage
     </span>
   </a>
   
@@ -556,15 +556,27 @@
 <h1 id="pql-reference">PQL reference<a class="headerlink" href="#pql-reference" title="Permanent link">&para;</a></h1>
 <p>This page walks the engine's capabilities. Each is complete unless explicitly marked as a documented deferral.</p>
 <h2 id="pql-front-end">PQL front-end<a class="headerlink" href="#pql-front-end" title="Permanent link">&para;</a></h2>
-<p>Lexer, parser and typed AST for the PuppetDB entities (<code>nodes</code>, <code>resources</code>, <code>facts</code>, <code>inventory</code>, <code>catalogs</code>, <code>reports</code>, <code>events</code>, <code>edges</code>, <code>fact_contents</code>), comparison / regexp / boolean operators, <code>in</code> membership, null tests, projection and <code>order</code> / <code>limit</code> / <code>offset</code>.</p>
+<p>Lexer, parser and typed AST for the PuppetDB entities (<code>nodes</code>, <code>resources</code>, <code>facts</code>, <code>inventory</code>, <code>catalogs</code>, <code>reports</code>, <code>events</code>, <code>edges</code>, <code>fact_contents</code>, <code>fact_paths</code>, <code>factsets</code>, <code>environments</code>, <code>packages</code>, <code>package_inventory</code>). The parser accepts every construct of PuppetDB's PQL grammar:</p>
+<ul>
+<li><strong>Comparison</strong> <code>=</code> <code>!=</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code>.</li>
+<li><strong>Regexp</strong> <code>~</code> (match), <code>!~</code> (non-match) and <code>~&gt;</code> (regexp-array match).</li>
+<li><strong>Boolean</strong> <code>and</code>, <code>or</code>, <code>not</code>, grouping with <code>(</code> <code>)</code>.</li>
+<li><strong>Membership</strong> <code>in</code> against an array literal <code>[...]</code> or a subquery.</li>
+<li><strong>Subqueries</strong> — explicit <code>in</code>/<code>from</code>, implicit <code>entity { ... }</code>, and the legacy <code>select_&lt;entity&gt;</code> spelling (all accepted, all compiled to the canonical form).</li>
+<li><strong>Null tests</strong> <code>is null</code>, <code>is not null</code>.</li>
+<li><strong>Projection</strong> — extract lists, dotted deep paths (<code>facts.os.family</code>) and aggregate/transform <strong>functions</strong> <code>count()</code>, <code>count(field)</code>, <code>avg</code>, <code>sum</code>, <code>min</code>, <code>max</code>, <code>to_string(field, fmt)</code>.</li>
+<li><strong>Grouping</strong> — <code>group by</code> (fields or functions), accepted inside the braces (PQL grammar) and, as a superset, after them.</li>
+<li><strong>Modifiers</strong> <code>order by … [asc|desc]</code>, <code>limit</code>, <code>offset</code> — inside or after the braces.</li>
+</ul>
 <h2 id="ast-query-compiler">AST-query compiler<a class="headerlink" href="#ast-query-compiler" title="Permanent link">&para;</a></h2>
-<p>Compile PQL to PuppetDB's canonical <code>["from", entity, ["and", …]]</code> JSON wire form via <code>MarshalAST</code>, the shape the HTTP API accepts directly.</p>
+<p>Compile PQL to PuppetDB's canonical <code>["from", entity, ["and", …]]</code> JSON wire form via <code>MarshalAST</code>, the shape the HTTP API accepts directly. <code>ParseAST</code> is the inverse — it reads that JSON back into a typed <code>Query</code>, byte-exact round-trip.</p>
 <h2 id="in-memory-evaluator">In-memory evaluator<a class="headerlink" href="#in-memory-evaluator" title="Permanent link">&para;</a></h2>
-<p><code>NewStore</code> with recursive subquery evaluation, ordering, paging and projection, so a PQL query runs against an in-memory dataset — no server required, fully testable.</p>
+<p><code>NewStore</code> runs a parsed PQL query against a registered dataset: filter, recursive <code>in</code>-subquery evaluation, <code>group by</code> with <code>count</code>/<code>avg</code>/<code>sum</code>/<code>min</code>/<code>max</code> aggregation, <code>~&gt;</code> array matching, ordering, paging and projection — no server required, fully testable. Two constructs parse and compile correctly (so the client sends them to a real PuppetDB) but return a clear error in-memory rather than guessing: <code>to_string(field, fmt)</code> (needs PostgreSQL <code>to_char</code>) and implicit subqueries (need PuppetDB's entity join graph).</p>
 <h2 id="http-client">HTTP client<a class="headerlink" href="#http-client" title="Permanent link">&para;</a></h2>
 <p><code>NewClient</code> POSTs PQL or a compiled AST to a live <code>/pdb/query/v4</code>, with token auth, behind an injectable <code>http.RoundTripper</code> seam.</p>
-<h2 id="storage-server-aggregates-planned">Storage server &amp; aggregates <em>( planned )</em><a class="headerlink" href="#storage-server-aggregates-planned" title="Permanent link">&para;</a></h2>
-<p>This library queries; it does not persist, index or serve. Aggregate / function projections (<code>count()</code>, <code>group by</code>), legacy <code>select_*</code> subquery spellings and live-data sync are documented follow-ons.</p>
+<h2 id="http-server-command-ingestion-embedded-storage">HTTP server, command ingestion &amp; embedded storage<a class="headerlink" href="#http-server-command-ingestion-embedded-storage" title="Permanent link">&para;</a></h2>
+<p><code>NewServer</code> serves the query API at <code>/pdb/query/v4</code> (PQL and AST, plus the per-entity paths) and ingests commands at <code>/pdb/cmd/v1</code>, backed by a <code>Store</code> and safe to serve concurrently. <code>Store.Ingest</code> accepts the current PuppetDB command wire formats — replace facts (v5), replace catalog (v9), store report (v8) — expanding each into the derived query entities so the data is immediately queryable. <code>Open</code> / <code>Save</code> / <code>Snapshot</code> / <code>Load</code> persist a store to a JSON file with no external database.</p>
+<p>The remaining PuppetDB-parity items are named explicitly (not silently capped): older command wire-format versions, PuppetDB-identical catalog/report content hashes (the store uses deterministic SHA-1 hashes), the <code>latest_report_*</code> node rollups, and the query API's pagination/count HTTP headers.</p>
 
 
 

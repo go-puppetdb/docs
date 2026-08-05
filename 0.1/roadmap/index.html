@@ -404,9 +404,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#next" class="md-nav__link">
+  <a href="#residuals-named-not-silently-capped" class="md-nav__link">
     <span class="md-ellipsis">
-      Next
+      Residuals (named, not silently capped)
     </span>
   </a>
   
@@ -476,9 +476,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#next" class="md-nav__link">
+  <a href="#residuals-named-not-silently-capped" class="md-nav__link">
     <span class="md-ellipsis">
-      Next
+      Residuals (named, not silently capped)
     </span>
   </a>
   
@@ -502,14 +502,17 @@
 <h1 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h1>
 <h2 id="done">Done<a class="headerlink" href="#done" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>PQL front-end</strong> — Lexer, parser and typed AST for the PuppetDB entities (<code>nodes</code>, <code>resources</code>, <code>facts</code>, <code>inventory</code>, <code>catalogs</code>, <code>reports</code>, <code>events</code>, <code>edges</code>, <code>fact_contents</code>), comparison / regexp / boolean operators, <code>in</code> membership, null tests, projection and <code>order</code> / <code>limit</code> / <code>offset</code>.</li>
-<li><strong>AST-query compiler</strong> — Compile PQL to PuppetDB's canonical <code>["from", entity, ["and", …]]</code> JSON wire form via <code>MarshalAST</code>, the shape the HTTP API accepts directly.</li>
-<li><strong>In-memory evaluator</strong> — <code>NewStore</code> with recursive subquery evaluation, ordering, paging and projection, so a PQL query runs against an in-memory dataset — no server required, fully testable.</li>
+<li><strong>PQL front-end</strong> — Lexer, parser and typed AST for the PuppetDB entities (<code>nodes</code>, <code>resources</code>, <code>facts</code>, <code>inventory</code>, <code>catalogs</code>, <code>reports</code>, <code>events</code>, <code>edges</code>, <code>fact_contents</code>, <code>fact_paths</code>, <code>factsets</code>, <code>environments</code>, <code>packages</code>, <code>package_inventory</code>), the comparison / regexp (<code>~</code> <code>!~</code> <code>~&gt;</code>) / boolean operators, <code>in</code> membership, null tests, projection with aggregate/transform <strong>functions</strong> (<code>count</code>, <code>avg</code>, <code>sum</code>, <code>min</code>, <code>max</code>, <code>to_string</code>), <strong><code>group by</code></strong>, the legacy <code>select_*</code> subquery spelling, and <code>order</code> / <code>limit</code> / <code>offset</code>.</li>
+<li><strong>AST-query compiler &amp; parser</strong> — Compile PQL to PuppetDB's canonical <code>["from", entity, ["and", …]]</code> JSON wire form via <code>MarshalAST</code>; <code>ParseAST</code> reads that JSON back into a <code>Query</code> (byte-exact round-trip).</li>
+<li><strong>In-memory evaluator</strong> — <code>NewStore</code> with recursive subquery evaluation, <code>group by</code> + <code>count</code>/<code>avg</code>/<code>sum</code>/<code>min</code>/<code>max</code> aggregation, <code>~&gt;</code> array matching, ordering, paging and projection — no server required, fully testable.</li>
 <li><strong>HTTP client</strong> — <code>NewClient</code> POSTs PQL or a compiled AST to a live <code>/pdb/query/v4</code>, with token auth, behind an injectable <code>http.RoundTripper</code> seam.</li>
+<li><strong>HTTP server &amp; command ingestion</strong> — <code>NewServer</code> serves <code>/pdb/query/v4</code> (PQL + AST + per-entity paths) and ingests commands at <code>/pdb/cmd/v1</code>; <code>Store.Ingest</code> handles replace facts (v5), replace catalog (v9) and store report (v8), expanding each into the derived query entities.</li>
+<li><strong>Embedded storage</strong> — pure-Go JSON-file backend (<code>Open</code> / <code>Save</code> / <code>Snapshot</code> / <code>Load</code>), no external database.</li>
 </ul>
-<h2 id="next">Next<a class="headerlink" href="#next" title="Permanent link">&para;</a></h2>
+<h2 id="residuals-named-not-silently-capped">Residuals (named, not silently capped)<a class="headerlink" href="#residuals-named-not-silently-capped" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Storage server &amp; aggregates</strong> — This library queries; it does not persist, index or serve. Aggregate / function projections (<code>count()</code>, <code>group by</code>), legacy <code>select_*</code> subquery spellings and live-data sync are documented follow-ons.</li>
+<li><code>to_string(field, fmt)</code> and implicit subqueries parse and compile (the client sends them to a real PuppetDB) but return a clear error in the in-memory evaluator.</li>
+<li>Older command wire-format versions; PuppetDB-identical catalog/report content hashes (the store uses deterministic SHA-1 hashes); the <code>latest_report_*</code> node rollups; and the query API's pagination/count HTTP headers.</li>
 </ul>
 <p>Quality is a standing gate: 100% coverage including error branches, <code>gofmt</code> + <code>go vet</code> clean, CI green across the six 64-bit Go targets (amd64, arm64, riscv64, loong64, ppc64le, s390x).</p>
 

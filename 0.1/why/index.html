@@ -536,9 +536,11 @@ network — flows through an <strong>injectable seam</strong>. That means both t
 which is how the project holds <strong>100% coverage</strong> across operating systems and
 architectures from a single test suite, without special privileges.</p>
 <h2 id="an-engine-not-a-framework">An engine, not a framework<a class="headerlink" href="#an-engine-not-a-framework" title="Permanent link">&para;</a></h2>
-<p>go-puppetdb exposes a small, stable Go API and does one thing well —
-pql reference — as a dependency-light library you embed, not a
-service or CLI you must stand up.</p>
+<p>go-puppetdb exposes a small, stable Go API for PuppetDB's query language and
+wire formats, as a dependency-light library you embed. It can also stand up a
+PuppetDB-compatible <code>/pdb/query/v4</code> + <code>/pdb/cmd/v1</code> HTTP server backed by its
+embedded store — but that server is a handful of lines of the same library, not
+a separate service or framework you must adopt.</p>
 
 
 
