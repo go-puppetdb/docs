@@ -21,7 +21,21 @@ c := puppetdb.NewClient("https://puppetdb.example:8081", puppetdb.WithToken(toke
 rows, _ = c.Query(context.Background(), `nodes{ facts.os.family = "RedHat" }`)
 ```
 
-`Parse` turns PQL into a typed AST; `MarshalAST` compiles it to PuppetDB's canonical `["from", …]` JSON. `NewStore` gives an in-memory dataset you populate with `Add` and query with `Eval`, including recursive subqueries, ordering, paging and projection. `NewClient` (with `WithToken` and a custom transport) POSTs PQL or a compiled AST to a live `/pdb/query/v4` endpoint.
+`Parse` turns PQL into a typed AST; `MarshalAST` compiles it to PuppetDB's canonical `["from", …]` JSON, and `ParseAST` reads that JSON back into a `Query`. `NewStore` gives an in-memory dataset you populate with `Add` and query with `Eval`, including recursive subqueries, `group by` + `count`/`avg`/`sum`/`min`/`max` aggregation, ordering, paging and projection. `NewClient` (with `WithToken` and a custom transport) POSTs PQL or a compiled AST to a live `/pdb/query/v4` endpoint.
+
+## Serve your own PuppetDB endpoint
+
+The library can also back a PuppetDB-compatible endpoint from a pure-Go embedded store — no external database:
+
+```go
+db, _ := puppetdb.Open("puppetdb.json") // pure-Go persistence
+srv := puppetdb.NewServer(db)           // /pdb/query/v4 + /pdb/cmd/v1
+http.ListenAndServe(":8081", srv)
+
+// Agents POST commands to /pdb/cmd/v1?command=replace_facts&version=5&certname=…
+// (replace facts v5, replace catalog v9, store report v8); the ingested data is
+// queryable at once. Clients POST PQL or AST to /pdb/query/v4.
+```
 
 ## Command line & builds
 
